@@ -1,15 +1,30 @@
 pragma solidity ^0.4.17;
 
 contract PWManager {
-    mapping(string => string) passwords;
     address owner;
+    string public title;
+    mapping(string => string) passwords;
 
-    constructor() public {
+    constructor(string t) public {
+        require(bytes(t).length > 0);
+
+        title = t;
         owner = msg.sender;
     }
 
     function store(string name, string pw) public onlyOwner {
-        //check if name or pw is empty
+        //ensure no value is set already at key
+        require(bytes(passwords[name]).length == 0);
+        //check if name or pw argument is empty
+        require(bytes(name).length != 0 && bytes(pw).length != 0);
+
+        passwords[name] = pw;
+    }
+
+    function update(string name, string pw) public onlyOwner {
+        //check if value is already set at key
+        require(bytes(passwords[name]).length > 0);
+        //check if name or pw argument is empty
         require(bytes(name).length != 0 && bytes(pw).length != 0);
 
         passwords[name] = pw;
@@ -20,6 +35,8 @@ contract PWManager {
     }
 
     function remove(string name) public onlyOwner {
+        require(bytes(passwords[name]).length > 0);
+
         delete passwords[name];
     }
 

@@ -11,6 +11,7 @@ const bytecode = compileResult.bytecode;
 const web3 = new Web3(ganache.provider());
 
 let accounts, contract;
+const name = 'testName', pw = 'test1234', newPw = 'test2929';
 
 beforeEach(async () => {
     //get accounts list
@@ -19,7 +20,8 @@ beforeEach(async () => {
     //deploy contract
     contract = await new web3.eth.Contract(JSON.parse(abi))
         .deploy({
-            data: bytecode
+            data: bytecode,
+            arguments: ['test']
         })
         .send({from: accounts[0], gas: '1000000'});
 })
@@ -30,9 +32,6 @@ describe('PW-Manager Contract Tests', () => {
     });
 
     it('can store and access a pw', async () => {
-
-        const name = 'testName', pw = 'test1234';
-
         await contract.methods
             .store(name, pw)
             .send({from: accounts[0]});
@@ -46,8 +45,6 @@ describe('PW-Manager Contract Tests', () => {
         //check if only the owner of the contract can access it
         assert.rejects(
             async () => {
-                const name = 'testName', pw = 'test1234';
-
                 await contract.methods
                     .store(name, pw)
                     .send({from: accounts[1]});
@@ -74,10 +71,25 @@ describe('PW-Manager Contract Tests', () => {
         );
     });
 
-    it('can change an existing password', async () => {
+    it('can only set a password, when the key doesn\'t exist yet', async () => {
+        await contract.methods
+            .store(name, pw)
+            .send({from: accounts[0]});
 
-        const name = 'testName', pw = 'test1234', newPw = 'test2929';
+        assert.rejects(
+            async () => {
+                await contract.methods
+                    .store(name, newPw)
+                    .send({from: accounts[0]});
+            },
+            {
+                name: 'c',
+                message: 'VM Exception while processing transaction: revert'
+            }
+        );
+    });
 
+    it('can update an existing password', async () => {
         await contract.methods
             .store(name, pw)
             .send({from: accounts[0]});
@@ -86,16 +98,28 @@ describe('PW-Manager Contract Tests', () => {
         assert.strictEqual(pw, fetchedPw);
 
         await contract.methods
-            .store(name, newPw)
+            .update(name, newPw)
             .send({from: accounts[0]});
 
         fetchedPw = await contract.methods.get(name).call();
         assert.strictEqual(newPw, fetchedPw);
     });
+
+    it('can only change an existing password, when it has been previously set', async () => {
+        assert.rejects(
+            async () => {
+                await contract.methods
+                    .update(name, pw)
+                    .send({from: accounts[0]});
+            },
+            {
+                name: 'c',
+                message: 'VM Exception while processing transaction: revert'
+            }
+        );
+    });
     
     it('can remove a password', async () => {
-        const name = 'testName', pw = 'test1234';
-
         await contract.methods
             .store(name, pw)
             .send({from: accounts[0]});
@@ -107,6 +131,20 @@ describe('PW-Manager Contract Tests', () => {
         const fetchedPw = await contract.methods.get(name).call();
 
         assert.strictEqual('', fetchedPw);
+    });
+
+    it('can only remove an existing password', async () => {
+        assert.rejects(
+            async () => {
+                await contract.methods
+                    .remove(name)
+                    .send({from: accounts[0]});
+            },
+            {
+                name: 'c',
+                message: 'VM Exception while processing transaction: revert'
+            }
+        );
     });
 })
 

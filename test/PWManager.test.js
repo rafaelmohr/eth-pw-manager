@@ -1,16 +1,18 @@
+const fs = require('fs-extra');
 const assert = require('assert');
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
+const web3 = new Web3(ganache.provider());
 
-const compileResult = require('../compile');
-
+//get compileresult from file
+const compileResult = require('../ethereum/build/PWManager.json');
 //get abi using dynamic variable name because interface is a reserved keyword
 const abi = compileResult['interface'];
 const bytecode = compileResult.bytecode;
 
-const web3 = new Web3(ganache.provider());
 
 let accounts, contract;
+//testing data
 const name = 'testName', pw = 'test1234', newPw = 'test2929';
 
 beforeEach(async () => {
